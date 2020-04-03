@@ -153,13 +153,52 @@ undertaken, but would require a not insignificant amount of work.
 If we continue with this implementation, the best course of action is likely to bind via
 C-bindings to the C++ provided thin client of Apache Ignite. There are multiple provided
 clients from Apache, but the C++ client has "no runtime" (unlike the Java or Go clients),
-and bindings in C can be auto-generated with one of many Rust libraries.
+and bindings in C can be auto-generated with one of many Rust libraries. The most popular
+libraries for generating these bindings is [cpp][rust cpp], which provides a macro to 
+embed C++ code in Rust source:
 
+```rust
+#[macro_use]
+extern crate cpp;
+
+cpp!{{
+    #include <iostream>
+}}
+
+fn main() {
+    let name = std::ffi::CString::new("World").unwrap();
+    let name_ptr = name.as_ptr();
+    let r = unsafe {
+        cpp!([name_ptr as "const char *"] -> u32 as "int32_t" {
+            std::cout << "Hello, " << name_ptr << std::endl;
+            return 42;
+        })
+    };
+    assert_eq!(r, 42)
+}
+```
 
 ### 3.2 Alternative Stores
 
 However, for both Redis and Memcached, there exist well-defined bindings:
-[redis for rust][redis rust] and [memcache for rust][memcache rust].
+[redis for rust][redis rust] and [memcache for rust][memcache rust]. Having such
+clean and robust bindings would lend to a more concise codebase, which would be less
+fragile.
+
+
+## 4 Connecting to the Repositories
+
+The suggested data to target with the endpoint repositories is thus far one of the
+following formats:
+
+- Documents (JSON?)
+- Relational Data
+- Blob Data
+- Timeseries
+
+For relational data, it may be best to target the [SQLx][sqlx] library, but until decisions
+are made as to which formats of data will be supported, it is not necessary to decide which
+libraries will be used to interact with that data.
 
 
 ## A Appendix
@@ -199,3 +238,5 @@ or library. More information can be found [here][build.rs] on the subject.
 [memcache rust]: https://docs.rs/crate/memcache/0.14.0
 [ignite rust]: https://github.com/isapego/ignite-rust
 [ignite cpp]: https://apacheignite-cpp.readme.io/docs/thin-client
+[rust cpp]: https://docs.rs/cpp/0.5.4/cpp/
+[sqlx]: https://github.com/launchbadge/sqlx
